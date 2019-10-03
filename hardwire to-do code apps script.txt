@@ -1,0 +1,87 @@
+
+function onEdit(e) {
+  //****************************************************
+  if (e.range.getA1Notation() == 'C6') {
+    if (/^\w+$/.test(e.value)) {        
+      eval(e.value)();
+      e.range.clear();
+    }
+  }
+  //****************************************************
+  if (e.range.getColumn() == 2){
+    sortData();
+  }
+}
+
+function checkForInventory(){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var form = ss.getSheetByName('Form');
+  //var data = ss.getSheetByName('Data');
+  var location = ss.getSheetByName('Location');
+    
+  var harnessNum = 'I 1 23 2465';
+  var requestedQuantity = form.getRange('C5').getValue();
+  // getValues() returns a 2 dimensional array that contains
+  // everything in the spreadsheet. 
+  var locationArray = location.getDataRange().getValues();
+  
+  // location[row][column]
+  for (var i = 0; i < locationArray.length; i++){
+    if (locationArray[i][1] == harnessNum){      
+      var onHandQuantity = locationArray[i][2];
+      Logger.log(onHandQuantity);
+      Logger.log(requestedQuantity);
+      
+      if (onHandQuantity >= requestedQuantity){
+        ss.toast('You have enough of this harness already cut');
+        Logger.log('You have enough of this harness already cut');
+        return 0;
+      }
+      else if (onHandQuantity < requestedQuantity){
+        var needThisManyMore = requestedQuantity - onHandQuantity;
+        return needThisManyMore;
+      }
+      ss.toast('Breaking out of loop');
+      Logger.log('Breaking out of loop');
+      break;
+    }
+  } 
+}
+
+function submitData() {
+  var ss        = SpreadsheetApp.getActiveSpreadsheet();
+  var formSS    = ss.getSheetByName("Form"); //Form Sheet
+  var datasheet = ss.getSheetByName("Data"); //Data Sheet
+    //Input Values
+  var values = 
+  [[
+  formSS.getRange("C1").getValue(),
+  formSS.getRange("C2").getValue(),
+  formSS.getRange("C3").getValue(),
+  formSS.getRange("C4").getValue(),
+  checkForInventory()
+  ]];
+  
+  // getRange(row, column, numRows, numColumns)
+  // Returns the range with the top left cell at the given coordinates with the given number of rows and columns.
+  datasheet.getRange(datasheet.getLastRow()+1, 1, 1, 5).setValues(values);        
+  sortData();
+}
+         
+function sortData(){
+  //***********************************************************************
+  // sort by priority then date          
+  var ss        = SpreadsheetApp.getActiveSpreadsheet();
+  var formSS    = ss.getSheetByName("Form"); //Form Sheet
+  var datasheet = ss.getSheetByName("Data"); //Data Sheet
+  SORT_DATA_RANGE = "A1:E100";
+  SORT_ORDER =
+  [
+  {column: 2, ascending: true},  // 3 = column number, sorting by descending order
+  {column: 4, ascending: true}
+  ];
+   var range = datasheet.getRange(SORT_DATA_RANGE);
+   range.sort(SORT_ORDER);
+   ss.toast('Sort complete.');
+   //***********************************************************************
+}
